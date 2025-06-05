@@ -14,12 +14,17 @@ import (
 )
 
 type mockAuthRepository struct {
-	mockRegister     func(ctx context.Context, user *models.User) error
-	mockFindByEmail  func(ctx context.Context, email string) (*models.User, error)
+	mockRegister    func(ctx context.Context, user *models.User) error
+	mockFindByEmail func(ctx context.Context, email string) (*models.User, error)
+	mockFindByID	func(ctx context.Context, id uuid.UUID) (*models.User, error)
 }
 
 func (m *mockAuthRepository) Create(ctx context.Context, user *models.User) error {
 	return m.mockRegister(ctx, user)
+}
+
+func (m *mockAuthRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	return m.mockFindByID(ctx, id)
 }
 
 func (m *mockAuthRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
