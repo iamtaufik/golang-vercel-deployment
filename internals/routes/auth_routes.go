@@ -9,4 +9,5 @@ func RegisterAuthRoutes(router fiber.Router, h *handlers.AuthHandler) {
 	auth := router.Group("/auth")
 
 	auth.Post("/login", h.Login)
+	auth.Post("/register", h.Register)
 }
