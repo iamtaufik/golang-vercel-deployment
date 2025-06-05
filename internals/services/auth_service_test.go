@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
@@ -116,7 +117,7 @@ func TestLogin_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, but get %v", err)
 	}
-
+	fmt.Sprintf("accessToken: %v\n", accessToken)
 	assert.NotEmpty(t, accessToken)
 	assert.NotEmpty(t, refreshToken)
 }
