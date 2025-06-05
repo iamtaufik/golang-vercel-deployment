@@ -78,3 +78,32 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": resp})
 }
+
+func (h *AuthHandler) Me(c *fiber.Ctx) error {
+	userIDRaw := c.Locals("user_id")
+	userID, ok := userIDRaw.(string)
+
+	if !ok || userID == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Unauthorized or userID not found in context",
+		})
+	}
+
+	user, err := h.Service.Me(c.Context(), userID)
+
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	resp := struct{
+		ID    string `json:"id"`
+		Name  string `json:"name"`
+		Email string `json:"email"`
+	}{
+		ID: user.ID.String(),
+		Name: user.Name,
+		Email: user.Email,
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": resp})
+}

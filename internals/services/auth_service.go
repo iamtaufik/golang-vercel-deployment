@@ -16,6 +16,7 @@ import (
 type AuthService interface {
 	Login(context context.Context, email, password string) (string, string, error)
 	Register(context context.Context, user *models.User) error
+	Me(context context.Context, id string) (*models.User, error)
 }
 
 type authService struct {
@@ -87,4 +88,24 @@ func (s *authService) Register(ctx context.Context, input *models.User) error {
 	}
 
 	return nil
+}
+
+func (s *authService) Me(ctx context.Context, id string) (*models.User, error) {
+	idVal, err := uuid.Parse(id)
+
+	if err != nil {
+		return nil, errors.New("invalid user id")
+	}
+
+	user, err := s.Repository.FindByID(ctx, idVal)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("user not found")
+		}
+
+		return nil, err
+	}
+
+	return user, nil
 }
