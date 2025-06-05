@@ -1,8 +1,8 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"net/http"
 	"os"
 
 	// Import your Vercel function's package
@@ -12,34 +12,50 @@ import (
 	// For this example, let's assume your go.mod is at the root and
 	// your Vercel function is in `api/index.go` with package `handler`.
 	// The import path will be like this:
-	api "github.com/iamtaufik/golang-vercel-deployment/api" // <--- IMPORTANT: Replace with your actual module name
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/iamtaufik/golang-vercel-deployment/internals/db"
+	"github.com/iamtaufik/golang-vercel-deployment/internals/handlers"
+	"github.com/iamtaufik/golang-vercel-deployment/internals/repository"
+	"github.com/iamtaufik/golang-vercel-deployment/internals/routes"
+	"github.com/iamtaufik/golang-vercel-deployment/internals/services"
+	"github.com/joho/godotenv"
 )
 
+func init(){
+	err := godotenv.Load(".env") 
+	if err != nil {
+		fmt.Println("Failed to load .env file")
+	}
+}
+
 func main() {
-	// Set the port to listen on. Default to 8080 if not specified.
-	db.ConnectDB()
+	app := fiber.New()
+	db := db.ConnectDB()
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	// Register your Vercel function handler
-	// If your Vercel function is in `api/index.go` and its package is `handler`,
-	// and the function itself is named `Handler`, then you'd use `api.Handler`.
-	http.HandleFunc("/api/index", api.Handler) // Make sure the path matches your intended access
+	pRepository := repository.NewProductRepository(db)
+	pService 	:= services.NewProductService(pRepository)
+	pHandler	:= handlers.NewProductHandler(pService)
+	
+	uRepository := repository.NewUserRepository(db)
+	aService 	:= services.NewAuthService(uRepository)
+	aHandler	:= handlers.NewAuthService(aService)
 
-	// You can also handle the root path if you want
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Redirect or serve a simple message
-		if r.URL.Path == "/" {
-			http.Redirect(w, r, "/api/index", http.StatusFound)
-			return
-		}
-		http.NotFound(w, r)
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     os.Getenv("CLIENT_URL"), // Your Vue development server origin
+		AllowCredentials: true,
+		// AllowHeaders: "Origin, Content-Type, Accept, Authorization", // Good to explicitly allow headers if you send them
+	}))
+
+	routes.RegisterRoutes(app, &routes.RouteConfig{
+		ProductHandler: pHandler,
+		AuthHandler: aHandler,
 	})
 
-	log.Printf("Server listening on http://localhost:%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(app.Listen(":" + port))
 }
