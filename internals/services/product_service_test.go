@@ -16,6 +16,27 @@ type mockProductRepository struct {
 	mockCreate func(ctx context.Context, product *models.Product) error
 }
 
+type mockUserRepository struct {
+	mockRegister    func(ctx context.Context, user *models.User) error
+	mockFindByEmail func(ctx context.Context, email string) (*models.User, error)
+	mockFindByID	func(ctx context.Context, id uuid.UUID) (*models.User, error)
+}
+
+func (m *mockUserRepository) Create(ctx context.Context, user *models.User) error {
+	return m.mockRegister(ctx, user)
+}
+
+func (m *mockUserRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	return m.mockFindByID(ctx, id)
+}
+
+func (m *mockUserRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
+	if m.mockFindByEmail != nil {
+		return m.mockFindByEmail(ctx, email)
+	}
+	return nil, nil
+}
+
 func (m *mockProductRepository) FindAll(ctx context.Context) ([]models.Product, error) {
 	return m.mockFindAll(ctx)
 }
@@ -28,24 +49,41 @@ func (m *mockProductRepository) Create(ctx context.Context, product *models.Prod
 }
 
 func TestCreateProduct_Success(t *testing.T) {
-	mockRepo := &mockProductRepository{
+	expectedUserID := uuid.New()
+
+	mockProductRepo := &mockProductRepository{
 		mockCreate: func(ctx context.Context, product *models.Product) error {
 			if product.Name == "" {
 				return errors.New("Name product is required")
 			} else if product.Price <= 0 {
 				return errors.New("Price must greater than 0")
 			}
-
 			return nil
 		},
 	}
 
-	service := NewProductService(mockRepo)
+	mockUserRepo := &mockUserRepository{
+		mockFindByID: func(ctx context.Context, id uuid.UUID) (*models.User, error) {
+			if id != expectedUserID {
+				return nil, errors.New("user not found")
+			}
+			return &models.User{
+				ID:    expectedUserID,
+				Name:  "Taufik",
+				Email: "taufik@dev.com",
+			}, nil
+		},
+
+	}
+
+
+	service := NewProductService(mockProductRepo, mockUserRepo)
 
 	product := &models.Product{
 		ID: uuid.New(),
 		Name: "Product B",
 		Price: 2000,
+		UserID: expectedUserID,
 	}
 
 	err := service.CreateProduct(context.Background(), product)
@@ -66,7 +104,9 @@ func TestGetProducts_Success(t *testing.T) {
 		},
 	}
 
-	service := NewProductService(mockRepo)
+	mockUserRepo := &mockUserRepository{}
+
+	service := NewProductService(mockRepo, mockUserRepo)
 
 	// Act
 	products, err := service.GetProducts(context.Background())
@@ -89,7 +129,9 @@ func TestGetProducts_Error(t *testing.T) {
 		},
 	}
 
-	service := NewProductService(mockRepo)
+	mockUserRepo := &mockUserRepository{}
+
+	service := NewProductService(mockRepo, mockUserRepo)
 
 	// Act
 	products, err := service.GetProducts(context.Background())
@@ -123,7 +165,9 @@ func TestGetProduct_Success(t *testing.T){
 		},
 	}
 
-	service := NewProductService(mockRepo)
+	mockUserRepo := &mockUserRepository{}
+
+	service := NewProductService(mockRepo, mockUserRepo)
 	
 	product, err := service.GetProduct(context.Background(), expectedID)
 
@@ -156,7 +200,9 @@ func TestGetProduct_Error(t *testing.T) {
 		},
 	}
 
-	service := NewProductService(mockRepo)
+	mockUserRepo := &mockUserRepository{}
+
+	service := NewProductService(mockRepo, mockUserRepo)
 	
 	product, err := service.GetProduct(context.Background(), expectedID)
 

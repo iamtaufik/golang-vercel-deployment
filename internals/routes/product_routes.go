@@ -10,4 +10,5 @@ func RegisterProductRoutes(router fiber.Router, h *handlers.ProductHandler) {
 	user := router.Group("/products")
 
 	user.Get("/", middlewares.JWTProtected(), h.GetProducts)
+	user.Post("/", middlewares.JWTProtected(), h.CreateProduct)
 }
