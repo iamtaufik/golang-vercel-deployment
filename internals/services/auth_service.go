@@ -17,6 +17,7 @@ type AuthService interface {
 	Login(context context.Context, email, password string) (string, string, error)
 	Register(context context.Context, user *models.User) error
 	Me(context context.Context, id string) (*models.User, error)
+	Refresh(context context.Context, refreshToken string) (string, error)
 }
 
 type authService struct {
@@ -29,7 +30,6 @@ func NewAuthService(repository repository.UserRepository) *authService {
 
 func (s *authService) Login(ctx context.Context, email, password string) (string, string, error){
 	user, err := s.Repository.FindByEmail(ctx, email)
-
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", "", errors.New("user not found")
@@ -108,4 +108,18 @@ func (s *authService) Me(ctx context.Context, id string) (*models.User, error) {
 	}
 
 	return user, nil
+}
+
+func (s *authService) Refresh(ctx context.Context, refreshToken string) (string, error) {
+	userID, err := jwt.ValidateRefreshToken(refreshToken)
+	if err != nil {
+		return "", err
+	}
+
+	accessToken, err := jwt.GenerateAccessToken(userID)
+	if err != nil {
+		return "", err
+	}
+
+	return accessToken, nil
 }

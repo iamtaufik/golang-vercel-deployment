@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"errors"
 	"os"
 	"time"
 
@@ -25,4 +26,29 @@ func GenerateRefreshToken(userID string) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(os.Getenv("JWT_REFRESH_SECRET")))
+}
+
+func ValidateRefreshToken(tokenStr string) (string, error) {
+	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("invalid signing method")
+		}
+		return []byte(os.Getenv("JWT_REFRESH_SECRET")), nil
+	})
+
+	if err != nil || !token.Valid {
+		return "", errors.New("invalid or expired refresh token")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", errors.New("could not parse claims")
+	}
+
+	userID, ok := claims["user_id"].(string)
+	if !ok {
+		return "", errors.New("invalid user_id")
+	}
+
+	return userID, nil
 }

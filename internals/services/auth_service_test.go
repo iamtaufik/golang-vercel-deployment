@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
@@ -122,7 +121,6 @@ func TestLogin_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, but get %v", err)
 	}
-	fmt.Printf("accessToken: %v\n", accessToken)
 	assert.NotEmpty(t, accessToken)
 	assert.NotEmpty(t, refreshToken)
 }
@@ -160,4 +158,89 @@ func TestLogin_Error(t *testing.T) {
 
 	assert.Empty(t, accessToken)
 	assert.Empty(t, refreshToken)
+}
+
+func TestRefresh_Success(t *testing.T) {
+	mockRepo := &mockAuthRepository{
+		mockFindByEmail: func(ctx context.Context, email string) (*models.User, error) {
+
+			hashedPassword, err := crypto.HashPassword("1234567890")
+
+			if err != nil {
+				return nil, err
+			}
+
+			return &models.User{
+				ID: uuid.New(),
+				Name: "Taufik",
+				Email: "taufik@dev.com",
+				Password: hashedPassword,
+			}, nil
+		},
+	}
+
+	service := NewAuthService(mockRepo)
+
+	request := &models.User{
+		Email: "taufik@dev.com",
+		Password: "1234567890",
+	}
+
+	_, refreshToken, err := service.Login(context.Background(), request.Email, request.Password)
+
+	if err != nil {
+		t.Fatalf("expected no error, but get %v", err)
+	}
+
+	accessToken, err := service.Refresh(context.Background(), refreshToken)
+
+	if err != nil {
+		t.Fatalf("expected no error, but get %v", err)
+	}
+
+	assert.NotEmpty(t, accessToken)
+}
+
+func TestRefresh_Test(t *testing.T) {
+	mockRepo := &mockAuthRepository{
+		mockFindByEmail: func(ctx context.Context, email string) (*models.User, error) {
+
+			hashedPassword, err := crypto.HashPassword("1234567890")
+
+			if err != nil {
+				return nil, err
+			}
+
+			return &models.User{
+				ID: uuid.New(),
+				Name: "Taufik",
+				Email: "taufik@dev.com",
+				Password: hashedPassword,
+			}, nil
+		},
+	}
+
+	service := NewAuthService(mockRepo)
+
+	request := &models.User{
+		Email: "taufik@dev.com",
+		Password: "1234567890",
+	}
+
+	_, refreshToken, err := service.Login(context.Background(), request.Email, request.Password)
+
+	
+	if err != nil {
+		t.Fatalf("expected no error, but get %v", err)
+	}
+	// Invalid refresh token	
+	refreshToken = "abcde"
+
+	accessToken, err := service.Refresh(context.Background(), refreshToken)
+
+	if err != nil {
+		assert.Equal(t, "invalid or expired refresh token", err.Error())
+	}
+
+	assert.Empty(t, accessToken)
 }
