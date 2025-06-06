@@ -26,14 +26,14 @@ func init() {
 
 	db := db.ConnectDB()
 
-	pRepository := repository.NewProductRepository(db)
-	pService 	:= services.NewProductService(pRepository)
-	pHandler	:= handlers.NewProductHandler(pService)
-
+	
 	uRepository := repository.NewUserRepository(db)
 	aService 	:= services.NewAuthService(uRepository)
 	aHandler	:= handlers.NewAuthService(aService)
-
+	
+	pRepository := repository.NewProductRepository(db)
+	pService 	:= services.NewProductService(pRepository, uRepository)
+	pHandler	:= handlers.NewProductHandler(pService)
 	// Initialize Fiber app once
 	app = fiber.New()
 

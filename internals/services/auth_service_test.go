@@ -160,6 +160,60 @@ func TestLogin_Error(t *testing.T) {
 	assert.Empty(t, refreshToken)
 }
 
+func TestMe_Success(t *testing.T) {
+	expectedID := uuid.New()
+
+	mockRepo := &mockAuthRepository{
+		mockFindByID: func(ctx context.Context, id uuid.UUID) (*models.User, error) {
+			if id != expectedID {
+				return nil, errors.New("user not found")
+			}
+			return &models.User{
+				ID:    expectedID,
+				Name:  "Taufik",
+				Email: "taufik@dev.com",
+			}, nil
+		},
+	}
+
+	service := NewAuthService(mockRepo)
+
+	user, err := service.Me(context.Background(), expectedID.String())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if user.ID != expectedID {
+		t.Errorf("expected ID %v, got %v", expectedID, user.ID)
+	}
+
+	if user.Name != "Taufik" {
+		t.Errorf("expected Name Taufik, got %s", user.Name)
+	}
+
+}
+
+
+func TestMe_Error(t *testing.T) {
+	expectedID := uuid.New()
+
+	mockRepo := &mockAuthRepository{
+		mockFindByID: func(ctx context.Context, id uuid.UUID) (*models.User, error) {
+			return nil, errors.New("invalid user id")
+		},
+	}
+
+	service := NewAuthService(mockRepo)
+
+	user, err := service.Me(context.Background(), expectedID.String())
+	
+	if err != nil {
+		assert.Equal(t, "invalid user id", err.Error())
+	}
+
+	assert.Empty(t, user)
+}
+
 func TestRefresh_Success(t *testing.T) {
 	mockRepo := &mockAuthRepository{
 		mockFindByEmail: func(ctx context.Context, email string) (*models.User, error) {

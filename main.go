@@ -38,14 +38,15 @@ func main() {
 		port = "8080"
 	}
 
-	pRepository := repository.NewProductRepository(db)
-	pService 	:= services.NewProductService(pRepository)
-	pHandler	:= handlers.NewProductHandler(pService)
 	
 	uRepository := repository.NewUserRepository(db)
 	aService 	:= services.NewAuthService(uRepository)
 	aHandler	:= handlers.NewAuthService(aService)
-
+	
+	pRepository := repository.NewProductRepository(db)
+	pService 	:= services.NewProductService(pRepository, uRepository)
+	pHandler	:= handlers.NewProductHandler(pService)
+	
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     os.Getenv("CLIENT_URL"), // Your Vue development server origin
 		AllowCredentials: true,
