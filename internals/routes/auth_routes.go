@@ -12,4 +12,5 @@ func RegisterAuthRoutes(router fiber.Router, h *handlers.AuthHandler) {
 	auth.Post("/login", h.Login)
 	auth.Post("/register", h.Register)
 	auth.Get("/me", middlewares.JWTProtected(), h.Me)
+	auth.Get("/refresh", h.Refresh)
 }

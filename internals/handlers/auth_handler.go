@@ -107,3 +107,14 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": resp})
 }
+
+func (h *AuthHandler) Refresh(c *fiber.Ctx) error {
+	refreshToken := c.Cookies("refreshToken")
+
+	accessToken, err := h.Service.Refresh(c.Context(), refreshToken)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"data": fiber.Map{"accessToken": accessToken}})
+}
